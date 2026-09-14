@@ -116,6 +116,7 @@ export function LegalDashboard() {
   };
 
   const run = async () => {
+    if (busy) return;
     setError('');
     if (question.trim().length < 8) {
       setError('Please describe your situation in at least a sentence.');
@@ -153,6 +154,7 @@ export function LegalDashboard() {
   };
 
   const upload = async (file: File) => {
+    if (busy) return;
     const invalid = validateDocument(file);
     if (invalid) {
       setError(invalid);
@@ -186,7 +188,7 @@ export function LegalDashboard() {
           Ask by text, voice, or document. We separate the facts you provide from general AI guidance.
         </p>
         <p className="mt-5 flex gap-2 rounded-lg bg-amber-400/15 p-3 text-sm text-amber-100">
-          <AlertTriangle className="shrink-0" size={20} />
+          <AlertTriangle aria-hidden="true" className="shrink-0" size={20} />
           This tool provides general information only. It is not a lawyer and cannot replace qualified legal advice.
         </p>
       </div>
@@ -235,7 +237,7 @@ export function LegalDashboard() {
                 disabled={busy}
                 className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2.5 font-semibold text-white disabled:opacity-60"
               >
-                <Send size={17} /> {busy ? 'Analyzing…' : 'Get action plan'}
+                <Send aria-hidden="true" size={17} /> {busy ? 'Analyzing…' : 'Get action plan'}
               </button>
               <button
                 type="button"
@@ -243,7 +245,7 @@ export function LegalDashboard() {
                 disabled={busy}
                 className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 font-semibold text-slate-800 disabled:opacity-60"
               >
-                <Mic size={17} /> Speak question
+                <Mic aria-hidden="true" size={17} /> Speak question
               </button>
               <button
                 type="button"
@@ -251,7 +253,7 @@ export function LegalDashboard() {
                 disabled={busy}
                 className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 font-semibold text-slate-800 disabled:opacity-60"
               >
-                <Upload size={17} /> Analyze document
+                <Upload aria-hidden="true" size={17} /> Analyze document
               </button>
               <input
                 ref={fileRef}
@@ -269,7 +271,7 @@ export function LegalDashboard() {
 
             {busy && (
               <p role="status" className="mt-3 flex items-center gap-2 text-sm text-slate-600">
-                <LoaderCircle className="animate-spin" size={16} /> Creating a structured action plan…
+                <LoaderCircle aria-hidden="true" className="animate-spin" size={16} /> Creating a structured action plan…
               </p>
             )}
             {recording && (
@@ -292,7 +294,7 @@ export function LegalDashboard() {
               className="rounded p-2 text-slate-600 hover:bg-slate-100"
               aria-label="Delete all legal assistance history"
             >
-              <Trash2 size={17} />
+              <Trash2 aria-hidden="true" size={17} />
             </button>
           </div>
           <p className="mt-2 text-xs text-slate-500">Stored in this browser for this account. Delete it anytime.</p>
@@ -314,7 +316,7 @@ export function LegalDashboard() {
             )}
           </div>
           <div className="mt-6 flex gap-2 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-900">
-            <ShieldCheck className="shrink-0" size={18} />
+            <ShieldCheck aria-hidden="true" className="shrink-0" size={18} />
             No legal conclusion or citation is generated unless a source is verified.
           </div>
         </aside>

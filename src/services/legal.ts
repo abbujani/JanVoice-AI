@@ -2,10 +2,24 @@ export const LEGAL_CATEGORIES = ['Employment', 'Rental/Housing', 'Consumer', 'Fa
 export type VerifiedSource = { title: string; url: string; publisher: string; verified_at: string };
 export type LegalPlan = { issue: string; what_i_understood: string; key_facts: string[]; possible_legal_considerations: string[]; documents_to_collect: string[]; suggested_next_steps: string[]; professional_help_advisable: string; verified_sources: VerifiedSource[]; source_status: 'Unverified AI Guidance' | 'Verified Official Sources'; disclaimer: string; language: string };
 const api = import.meta.env.VITE_API_URL || '';
+const REQUEST_TIMEOUT_MS = 30_000;
 async function request(path: string, init: RequestInit): Promise<LegalPlan> {
-  const response = await fetch(`${api}${path}`, init);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let response: Response;
+  try {
+    response = await fetch(`${api}${path}`, { ...init, signal: controller.signal });
+  } catch {
+    throw new Error('Cannot reach the legal assistance service. Please check your connection and try again.');
+  } finally {
+    clearTimeout(timeout);
+  }
   if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.detail || 'The legal assistance service is unavailable. Please try again.'); }
-  return response.json();
+  try {
+    return await response.json();
+  } catch {
+    throw new Error('The legal assistance service sent an invalid response. Please try again.');
+  }
 }
 export function analyzeQuestion(message: string, language: 'English' | 'Hindi') { return request('/api/legal/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, language }) }); }
 export function analyzeDocument(file: File, language: 'English' | 'Hindi') { const form = new FormData(); form.append('file', file); return request(`/api/legal/document?language=${language}`, { method: 'POST', body: form }); }

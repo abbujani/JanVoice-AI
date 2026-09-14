@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth, hasFirebaseConfig } from '../services/firebase';
+import { hasFirebaseConfig, loadFirebaseAuth } from '../services/firebase';
 
 export interface AuthProfile {
   uid: string;
@@ -30,29 +29,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!hasFirebaseConfig || !auth) {
-      setUser({ uid: 'guest', email: '', displayName: 'Guest' });
-      setLoading(false);
-      return;
-    }
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
-      setUser(
-        firebaseUser
-          ? {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              displayName: firebaseUser.displayName || 'User',
-            }
-          : null
-      );
-      setLoading(false);
-    });
-    return unsubscribe;
+    (async () => {
+      const auth = await loadFirebaseAuth();
+      if (cancelled) return;
+      if (!auth) {
+        setUser({ uid: 'guest', email: '', displayName: 'Guest' });
+        setLoading(false);
+        return;
+      }
+      const { onAuthStateChanged } = await import('firebase/auth');
+      unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+        setUser(
+          firebaseUser
+            ? {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email || '',
+                displayName: firebaseUser.displayName || 'User',
+              }
+            : null
+        );
+        setLoading(false);
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
   }, []);
 
   const logout = async () => {
-    if (!hasFirebaseConfig || !auth) return;
+    if (!hasFirebaseConfig) return;
+    const auth = await loadFirebaseAuth();
+    if (!auth) return;
+    const { signOut } = await import('firebase/auth');
     await signOut(auth);
     setUser(null);
   };

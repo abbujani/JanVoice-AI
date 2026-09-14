@@ -59,6 +59,48 @@ describe('analyzeQuestion', () => {
       'Too many requests. Please wait a minute and try again.',
     );
   });
+
+  it('maps network failures to an actionable user message', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('fetch failed')));
+
+    await expect(analyzeQuestion('My salary has not been paid.', 'English')).rejects.toThrow(
+      'Cannot reach the legal assistance service. Please check your connection and try again.',
+    );
+  });
+
+  it('aborts a request that exceeds the 30 second timeout', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn((_url: string, init?: RequestInit) => {
+          const signal = init?.signal as AbortSignal;
+          return new Promise((_resolve, reject) => {
+            if (signal.aborted) reject(new DOMException('Aborted', 'AbortError'));
+            signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+          });
+        }) as unknown as typeof fetch,
+      );
+
+      const pending = analyzeQuestion('My salary has not been paid.', 'English');
+      const assertion = expect(pending).rejects.toThrow(
+        'Cannot reach the legal assistance service. Please check your connection and try again.',
+      );
+      await vi.advanceTimersByTimeAsync(30_000);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('returns a safe message when the API body is not valid JSON', async () => {
+    const invalidBody = { ok: true, json: () => Promise.reject(new SyntaxError('Unexpected token')) } as unknown as Response;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(invalidBody));
+
+    await expect(analyzeQuestion('My salary has not been paid.', 'English')).rejects.toThrow(
+      'The legal assistance service sent an invalid response. Please try again.',
+    );
+  });
 });
 
 describe('analyzeDocument', () => {
