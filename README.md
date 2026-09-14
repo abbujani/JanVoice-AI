@@ -61,6 +61,24 @@ CORS_ORIGINS=http://localhost:5173
 
 Without Gemini, the API returns a deliberately conservative local action plan, which makes demos possible but does not analyze document contents.
 
+## Deployment
+
+The frontend is a Vite SPA hosted on Vercel and the FastAPI backend runs as a
+Vercel Python serverless function (`api/index.py`) in the **same project**, so
+browser requests to `/api/*` stay on the same origin and need no preflight.
+
+- `vercel.json` routes `/api/(.*)` to the `api/index.py` function and rewrites
+  every other path to `index.html` for SPA navigation.
+- `requirements.txt` (project root) and `.python-version` pin the Python
+  runtime for the serverless function.
+- The frontend resolves the API with `VITE_API_URL`; leave it unset in
+  production to use same-origin `/api`, and set it to `http://localhost:8000`
+  for local development.
+- Server-side environment variables: `CORS_ORIGINS` must list the exact
+  production frontend origin (a comma-separated list for more than one) and
+  `GEMINI_API_KEY` is the optional Gemini credential. Both stay in Vercel
+  project settings and are never committed.
+
 ## Validation
 
 ```bash

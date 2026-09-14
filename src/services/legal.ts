@@ -1,7 +1,7 @@
 export const LEGAL_CATEGORIES = ['Employment', 'Rental/Housing', 'Consumer', 'Family', 'Contract', 'Cybercrime', 'Property', 'Government services', 'Criminal complaint information', 'Civil dispute', 'Other'] as const;
 export type VerifiedSource = { title: string; url: string; publisher: string; verified_at: string };
 export type LegalPlan = { issue: string; what_i_understood: string; key_facts: string[]; possible_legal_considerations: string[]; documents_to_collect: string[]; suggested_next_steps: string[]; professional_help_advisable: string; verified_sources: VerifiedSource[]; source_status: 'Unverified AI Guidance' | 'Verified Official Sources'; disclaimer: string; language: string };
-const api = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const api = import.meta.env.VITE_API_URL || '';
 async function request(path: string, init: RequestInit): Promise<LegalPlan> {
   const response = await fetch(`${api}${path}`, init);
   if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.detail || 'The legal assistance service is unavailable. Please try again.'); }

@@ -1,9 +1,12 @@
 {
   "cleanUrls": true,
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
+  "functions": {
+    "api/index.py": {
+      "excludeFiles": "backend/tests/**,**/__pycache__/**"
     }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
