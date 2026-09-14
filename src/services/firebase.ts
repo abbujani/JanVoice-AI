@@ -1,7 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
@@ -21,20 +19,14 @@ export const hasFirebaseConfig = !!(
 
 let app;
 let auth: ReturnType<typeof getAuth> | undefined;
-let db: ReturnType<typeof getFirestore> | undefined;
-let storage: ReturnType<typeof getStorage> | undefined;
-let googleProvider: GoogleAuthProvider | undefined;
 
 if (hasFirebaseConfig) {
   try {
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
-    db = getFirestore(app);
-    storage = getStorage(app);
-    googleProvider = new GoogleAuthProvider();
   } catch (error) {
     console.error("Failed to initialize Firebase Client SDK:", error);
   }
 }
 
-export { auth, db, storage, googleProvider };
+export { auth };

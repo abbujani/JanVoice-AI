@@ -1,7 +1,8 @@
 """Strict, display-safe contracts for legal-assistance results."""
-from typing import Literal
+from typing import Annotated, Literal
 from pydantic import BaseModel, Field, ValidationError
 from backend.services.legal_categories import LEGAL_CATEGORIES
+
 
 class SourceMetadata(BaseModel):
     title: str = Field(min_length=1, max_length=240)
@@ -9,18 +10,23 @@ class SourceMetadata(BaseModel):
     publisher: str = Field(min_length=1, max_length=120)
     verified_at: str = Field(min_length=1, max_length=64)
 
+
+ListItem = Annotated[str, Field(min_length=1, max_length=500)]
+
+
 class LegalPlan(BaseModel):
-    issue: str
+    issue: str = Field(min_length=1, max_length=120)
     what_i_understood: str = Field(min_length=1, max_length=3000)
-    key_facts: list[str] = Field(max_length=8)
-    possible_legal_considerations: list[str] = Field(max_length=8)
-    documents_to_collect: list[str] = Field(max_length=8)
-    suggested_next_steps: list[str] = Field(max_length=8)
+    key_facts: list[ListItem] = Field(max_length=8)
+    possible_legal_considerations: list[ListItem] = Field(max_length=8)
+    documents_to_collect: list[ListItem] = Field(max_length=8)
+    suggested_next_steps: list[ListItem] = Field(max_length=8)
     professional_help_advisable: str = Field(min_length=1, max_length=1500)
     verified_sources: list[SourceMetadata] = Field(default_factory=list, max_length=5)
     source_status: Literal["Unverified AI Guidance", "Verified Official Sources"]
     disclaimer: str = Field(min_length=1, max_length=500)
     language: Literal["English", "Hindi"]
+
 
 def validate_plan(payload: object, fallback: dict) -> dict:
     """Reject malformed model output and prevent an unverified model from asserting sources."""

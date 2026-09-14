@@ -23,6 +23,7 @@ interface SpeechRecognition {
   lang: string;
   onresult: ((event: { results: { 0: { 0: { transcript: string } } } }) => void) | null;
   onerror: (() => void) | null;
+  onend: (() => void) | null;
   start(): void;
 }
 
@@ -102,6 +103,7 @@ export function LegalDashboard() {
   const [question, setQuestion] = useState('');
   const [plan, setPlan] = useState<LegalPlan | null>(null);
   const [busy, setBusy] = useState(false);
+  const [recording, setRecording] = useState(false);
   const [error, setError] = useState('');
   const [history, setHistory] = useState<Stored[]>(() => loadHistory(storageKey));
   const fileRef = useRef<HTMLInputElement>(null);
@@ -130,15 +132,23 @@ export function LegalDashboard() {
   };
 
   const record = () => {
-    if (busy) return;
+    if (busy || recording) return;
     if (!speech) {
       setError('Voice input is not supported by this browser.');
       return;
     }
     const recognition = new speech();
     recognition.lang = language === 'Hindi' ? 'hi-IN' : 'en-IN';
-    recognition.onresult = (e) => setQuestion(e.results[0][0].transcript);
-    recognition.onerror = () => setError('We could not capture your voice. Please type your question.');
+    setRecording(true);
+    recognition.onresult = (e) => {
+      setQuestion(e.results[0][0].transcript);
+      setRecording(false);
+    };
+    recognition.onerror = () => {
+      setRecording(false);
+      setError('We could not capture your voice. Please type your question.');
+    };
+    recognition.onend = () => setRecording(false);
     recognition.start();
   };
 
@@ -189,7 +199,7 @@ export function LegalDashboard() {
               <label className="text-sm font-medium">
                 Language
                 <select
-                  className="ml-2 rounded border p-2"
+                  className="ml-2 rounded border p-2 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200"
                   value={language}
                   onChange={(e) => setLanguage(e.target.value as 'English' | 'Hindi')}
                 >
@@ -247,6 +257,7 @@ export function LegalDashboard() {
                 ref={fileRef}
                 className="sr-only"
                 type="file"
+                aria-label="Upload a legal document in PDF, image, or text format"
                 accept=".pdf,.png,.jpg,.jpeg,.webp,.txt"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
@@ -261,6 +272,11 @@ export function LegalDashboard() {
                 <LoaderCircle className="animate-spin" size={16} /> Creating a structured action plan…
               </p>
             )}
+            {recording && (
+              <p role="status" className="mt-3 text-sm text-slate-600">
+                Listening… speak clearly and wait for the transcript to appear.
+              </p>
+            )}
             {error && <p role="alert" className="mt-3 rounded bg-red-50 p-3 text-sm text-red-800">{error}</p>}
           </div>
 
@@ -273,7 +289,7 @@ export function LegalDashboard() {
             <button
               type="button"
               onClick={clear}
-              className="rounded p-2 text-slate-600 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="rounded p-2 text-slate-600 hover:bg-slate-100"
               aria-label="Delete all legal assistance history"
             >
               <Trash2 size={17} />
@@ -287,7 +303,7 @@ export function LegalDashboard() {
                   type="button"
                   key={item.id}
                   onClick={() => setPlan(item)}
-                  className="w-full rounded-lg border p-3 text-left hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  className="w-full rounded-lg border p-3 text-left hover:border-blue-400"
                 >
                   <b className="block text-sm text-slate-900">{item.issue}</b>
                   <span className="block truncate text-xs text-slate-500">{item.input}</span>
