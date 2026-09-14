@@ -1,84 +1,75 @@
-# JanVoice AI 🗳️
-> **Every Citizen's Voice. Every Development Decision Powered by AI.**
+# JanVoice Legal Access
 
-Winner-tier AI Decision Intelligence System built for the **Google Build with AI: Code for Communities Hackathon**. JanVoice AI bridges the gap between regional communities and their Members of Parliament (MPs) by translating citizen submissions (voice, text, images, location) into structured development project recommendations.
+JanVoice Legal Access helps people describe a legal concern, understand the facts they supplied, organize documents, and get practical next-step guidance in English or Hindi. It is built for the Hack2Skill **AI for Legal Assistance & Access** challenge.
 
----
+> **Legal notice:** This product provides general legal information, not legal advice. It does not create a lawyer-client relationship and should not replace a qualified lawyer, especially where a deadline, safety risk, detention, eviction, or significant loss is involved.
 
-## Key Features
+## What it does
 
-1. **Multilingual Voice AI**: Citizens record audio inside the browser. Gemini's multimodal audio engine transcribes, auto-detects language, and translates speech to English in a single call.
-2. **Vision AI Analysis**: Gemini Vision analyzes uploaded images of civic infrastructure damage (potholes, garbage, leaks) and generates structural summaries.
-3. **NLP Processing Pipeline**: Classifies reports, estimates urgency ranks, detects sentiments, and extracts keywords.
-4. **Spatial Duplicate Engine**: Clusters complaints within 300 meters, aggregates citizen impact, and flags duplicates.
-5. **AI Development Engine**: Automatically recommends projects (e.g., "Pave Bazar Road") with a calculated **Priority Score (out of 100)**, detailed explanations, budget tiers, and beneficiary forecasts.
-6. **MP Dashboard**: Rich visual charts (using Recharts), live incident maps (Google Maps Heatmaps), and a conversational AI chat assistant.
-7. **Role-Based Sandbox Panel**: A toggle system allowing reviewers to instantly inspect the Citizen, MP, and Administrator views.
+- Text and browser voice questions with a visible transcript.
+- Structured action plans: issue category, supplied facts, considerations, evidence to collect, next steps, professional-help warning, source status, and disclaimer.
+- Document analysis for PDF, images, and text (8 MB maximum); Gemini multimodal analysis is used when configured.
+- Eleven implemented issue categories: Employment, Rental/Housing, Consumer, Family, Contract, Cybercrime, Property, Government services, Criminal complaint information, Civil dispute, and Other.
+- Per-account browser history with deletion controls. Firebase rules are supplied for a private `users/{uid}/legalHistory` collection when persistent history is enabled.
 
----
+## Architecture
 
-## Tech Stack
+React + TypeScript + Vite provides the accessible single-page interface. FastAPI exposes a small, validated legal-AI boundary. `backend/services/legal_service.py` owns issue classification, the Gemini prompt, structured-output shaping, source safeguards, and a deterministic no-key fallback. `backend/services/validation.py` centralizes input and document limits.
 
-* **Frontend**: React 19, TypeScript, Vite, Tailwind CSS v4, Framer Motion, Recharts.
-* **Backend**: FastAPI (Python), Uvicorn, Google GenAI SDK.
-* **Database & Authentication**: Firebase Authentication, Firestore, Real-time Snapshot listeners.
+Gemini is used only server-side through `GEMINI_API_KEY`: question analysis and multimodal document/image interpretation. Prompts prohibit fabricated statutes, sections, cases, deadlines, procedures, and citations. Model output is validated against a strict response contract before it reaches the UI. `source_provider.py` is an extension point for independently retrieved official Indian government/court material; no provider is currently registered, so every answer is forcibly labelled **Unverified AI Guidance** and includes no source link.
 
----
+## Security and privacy
 
-## Environment Configuration
+- Secrets stay in environment variables; `.env` and service-account files are ignored.
+- API requests are size/type and file-signature validated and rate limited (20 API requests per IP per minute).
+- Document and user text are delimited as untrusted data; they cannot change model instructions.
+- CORS is restricted via `CORS_ORIGINS` (defaults to the Vite development origin) and credentials are not accepted cross-origin.
+- Firestore rules restrict user profiles and legal-history subcollections to their authenticated owner; all unlisted collections are denied.
+- Errors returned to the UI are safe messages, not stack traces.
+- The client never renders AI output as HTML.
 
-Create a `.env` file in the root directory:
+## Setup
 
-```env
-# Frontend Keys
-VITE_FIREBASE_API_KEY=your_firebase_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_firebase_project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your_firebase_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_firebase_project.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_id
-VITE_FIREBASE_APP_ID=your_app_id
+Frontend (Node 20+):
 
-VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
-VITE_API_URL=http://localhost:8000
-
-# Backend Keys
-GEMINI_API_KEY=your_gemini_api_key
-PORT=8000
-```
-
-*Note: If no Firebase configurations or Gemini API keys are supplied, the application automatically triggers its **standalone offline fallback mode** using local state engines so you can present the full portal instantly.*
-
----
-
-## Setup Instructions
-
-### 1. Frontend Setup
-Make sure you have Node.js v20+ installed.
 ```bash
-# Install dependencies
-npm install --legacy-peer-deps
-
-# Build the assets for production
-npm run build
-
-# Start the local development server
+npm install
 npm run dev
 ```
 
-### 2. Backend Setup
-Make sure you have Python 3.10+ installed.
-```bash
-# Navigate to the workspace and install requirements
-py -3 -m pip install -r backend/requirements.txt
+Backend (Python 3.10+):
 
-# Start the FastAPI server
-py -3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+```bash
+py -3 -m pip install -r backend/requirements.txt
+py -3 -m uvicorn backend.main:app --port 8000 --reload
 ```
 
----
+Create `.env` only when connecting services:
 
-## Directory Layout
-* `src/components/`: Reusable components (e.g. `AudioRecorder` canvas visualizer, `LocationPicker` map layer, `GlassCard`).
-* `src/context/`: Core states (`AuthContext`, `DataContext` Firestore listeners).
-* `src/pages/`: Main application pages (`LandingPage`, dashboards for Citizens, MPs, Admins).
-* `backend/services/`: AI pipelines (`gemini_service.py`, `clustering.py`, `dev_engine.py`).
+```env
+VITE_API_URL=http://localhost:8000
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+GEMINI_API_KEY=...
+GEMINI_MODEL=gemini-2.0-flash
+CORS_ORIGINS=http://localhost:5173
+```
+
+Without Gemini, the API returns a deliberately conservative local action plan, which makes demos possible but does not analyze document contents.
+
+## Validation
+
+```bash
+npm run build
+npm run lint
+py -3 -m unittest discover -s backend/tests -p "test_*.py"
+py -3 -m compileall -q backend
+```
+
+## Accessibility and limitations
+
+The interface uses labelled inputs, keyboard-native buttons, visible focus styling, `aria-live` results, error alerts, responsive layouts, and non-colour-only status text. Browser voice input depends on browser support. The system does not retrieve or verify live legal authorities, does not file documents, and should be localized with jurisdiction-specific, authoritative retrieval before production deployment.

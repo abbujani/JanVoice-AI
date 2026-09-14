@@ -1,38 +1,13 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to check if user is authenticated
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-    
-    // Helper to get user profile document
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
-    // Rules for user profiles
+    function signedIn() { return request.auth != null; }
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && (request.auth.uid == userId || getUserData().role == 'admin');
+      allow read, create, update, delete: if signedIn() && request.auth.uid == userId;
     }
-
-    // Rules for complaints
-    match /complaints/{complaintId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update, delete: if isAuthenticated() && (
-        request.auth.uid == request.resource.data.citizenId || 
-        getUserData().role in ['mp', 'admin']
-      );
+    match /users/{userId}/legalHistory/{entryId} {
+      allow read, create, update, delete: if signedIn() && request.auth.uid == userId;
     }
-
-    // Rules for project recommendations
-    match /recommendations/{recommendationId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && (getUserData().role in ['mp', 'admin']);
-    }
+    // No catch-all rule: all other collections are denied by default.
   }
 }
