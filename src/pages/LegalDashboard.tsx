@@ -5,11 +5,10 @@ import {
   LoaderCircle,
   Mic,
   Send,
-  ShieldCheck,
-  Trash2,
   Upload,
 } from 'lucide-react';
 import { analyzeDocument, analyzeQuestion, LEGAL_CATEGORIES, type LegalPlan, validateDocument } from '../services/legal';
+import { Dashboard, type StoredAssistance } from '../components/Dashboard';
 import { useAuth } from '../context/AuthContext';
 
 declare global {
@@ -27,18 +26,16 @@ interface SpeechRecognition {
   start(): void;
 }
 
-type Stored = LegalPlan & { id: string; createdAt: string; input: string };
-
 const speech = window.SpeechRecognition || window.webkitSpeechRecognition;
 const newId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-function loadHistory(key: string): Stored[] {
+function loadHistory(key: string): StoredAssistance[] {
   try {
     const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as Stored[]) : [];
+    return raw ? (JSON.parse(raw) as StoredAssistance[]) : [];
   } catch {
     return [];
   }
@@ -105,7 +102,7 @@ export function LegalDashboard() {
   const [busy, setBusy] = useState(false);
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState('');
-  const [history, setHistory] = useState<Stored[]>(() => loadHistory(storageKey));
+  const [history, setHistory] = useState<StoredAssistance[]>(() => loadHistory(storageKey));
   const fileRef = useRef<HTMLInputElement>(null);
 
   const save = (answer: LegalPlan, input: string) => {
@@ -193,8 +190,8 @@ export function LegalDashboard() {
         </p>
       </div>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1.4fr_0.6fr]">
-        <div>
+      <div className="mt-8 grid items-start gap-8 lg:grid-cols-[1fr_minmax(0,26rem)]">
+        <div className="min-w-0">
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-xl font-bold text-slate-950">Ask a legal question</h2>
@@ -285,41 +282,7 @@ export function LegalDashboard() {
           {plan && <PlanView plan={plan} />}
         </div>
 
-        <aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h2 className="font-bold text-slate-950">My previous assistance</h2>
-            <button
-              type="button"
-              onClick={clear}
-              className="rounded p-2 text-slate-600 hover:bg-slate-100"
-              aria-label="Delete all legal assistance history"
-            >
-              <Trash2 aria-hidden="true" size={17} />
-            </button>
-          </div>
-          <p className="mt-2 text-xs text-slate-500">Stored in this browser for this account. Delete it anytime.</p>
-          <div className="mt-4 space-y-3">
-            {history.length ? (
-              history.map((item) => (
-                <button
-                  type="button"
-                  key={item.id}
-                  onClick={() => setPlan(item)}
-                  className="w-full rounded-lg border p-3 text-left hover:border-blue-400"
-                >
-                  <b className="block text-sm text-slate-900">{item.issue}</b>
-                  <span className="block truncate text-xs text-slate-500">{item.input}</span>
-                </button>
-              ))
-            ) : (
-              <p className="text-sm text-slate-500">Your saved action plans will appear here.</p>
-            )}
-          </div>
-          <div className="mt-6 flex gap-2 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-900">
-            <ShieldCheck aria-hidden="true" className="shrink-0" size={18} />
-            No legal conclusion or citation is generated unless a source is verified.
-          </div>
-        </aside>
+        <Dashboard items={history} onOpen={(item) => setPlan(item)} onClear={clear} />
       </div>
     </main>
   );
